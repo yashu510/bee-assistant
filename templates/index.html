@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bee - Your AI Assistant</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      height: 100vh;
+      background: #0a0a0a;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      width: 260px;
+      background: #111111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      border-right: 1px solid #222;
+      transition: transform 0.3s;
+    }
+    #sidebar h2 { font-size: 20px; color: #f0c040; margin-bottom: 16px; text-align: center; }
+    #new-chat-btn {
+      background: #f0c040;
+      color: #0a0a0a;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    #new-chat-btn:hover { background: #e0b030; }
+    #interview-btn {
+      background: #1a1a1a;
+      color: #f0c040;
+      border: 1px solid #f0c040;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 16px;
+      font-size: 14px;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+    }
+    #interview-btn:hover { background: #f0c040; color: #0a0a0a; }
+    #chat-list { flex: 1; overflow-y: auto; }
+    .chat-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .chat-item:hover { background: #1a1a1a; color: #f0c040; }
+    .chat-item.active { background: #1a1a1a; color: #f0c040; }
+    .chat-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .delete-btn {
+      background: transparent;
+      border: none;
+      color: #444;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      display: none;
+    }
+    .chat-item:hover .delete-btn { display: block; }
+    .delete-btn:hover { background: #c62828; color: white; }
+    #logout-btn {
+      background: transparent;
+      color: #555;
+      border: 1px solid #333;
+      padding: 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    #logout-btn:hover { color: #f0c040; border-color: #f0c040; }
+
+    #main { flex: 1; display: flex; flex-direction: column; background: #0a0a0a; overflow: hidden; }
+
+    header {
+      background: #111111;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #222;
+    }
+    header h1 { font-size: 20px; color: #f0c040; font-weight: 700; }
+    header span { font-size: 14px; color: #888; }
+    #menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: #f0c040;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    /* Camera bar */
+    #camera-bar {
+      background: #111111;
+      border-bottom: 1px solid #222;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #camera-toggle {
+      background: #1a1a1a;
+      color: #f0c040;
+      border: 1px solid #333;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    #camera-toggle:hover { background: #f0c040; color: #0a0a0a; }
+    #camera-toggle.active { background: #c62828; color: white; border-color: #c62828; }
+    #camera-preview {
+      width: 120px;
+      height: 80px;
+      border-radius: 8px;
+      object-fit: cover;
+      transform: scaleX(-1);
+      display: none;
+      border: 1px solid #333;
+    }
+
+    #chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .message {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .user-msg {
+      background: #f0c040;
+      color: #0a0a0a;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+    }
+    .user-msg:hover { background: #e0b030; }
+    .user-msg:hover::after {
+      content: '✏️ Click to edit';
+      position: absolute;
+      bottom: -22px;
+      right: 0;
+      font-size: 11px;
+      color: #888;
+      white-space: nowrap;
+    }
+    .bee-msg {
+      background: #1a1a1a;
+      color: #eeeeee;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      border: 1px solid #2a2a2a;
+    }
+    .typing {
+      background: #1a1a1a;
+      color: #888;
+      align-self: flex-start;
+      border-radius: 18px;
+      padding: 12px 16px;
+      font-size: 15px;
+      border: 1px solid #2a2a2a;
+    }
+    .chat-image { max-width: 200px; border-radius: 12px; margin-top: 8px; display: block; }
+
+    /* Images preview bar */
+    #images-preview-bar {
+      display: none;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: #1a1a1a;
+      padding: 10px 16px;
+      border-top: 1px solid #222;
+    }
+    .img-thumb-wrap { position: relative; display: inline-block; }
+    .img-thumb {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
+    .img-remove {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #c62828;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Input area */
+    #input-area {
+      background: #111111;
+      padding: 12px 16px;
+      border-top: 1px solid #222;
+    }
+    #input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #1a1a1a;
+      border: 2px solid #333;
+      border-radius: 28px;
+      padding: 6px 10px;
+    }
+    #input-row:focus-within { border-color: #f0c040; }
+    .input-icon-btn {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .input-icon-btn:hover { color: #f0c040; background: #222; }
+    .input-icon-btn.active { color: #c62828; }
+    #message-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      font-size: 15px;
+      color: #ffffff;
+      caret-color: #f0c040;
+      padding: 6px 4px;
+    }
+    #message-input::placeholder { color: #555; }
+    #send-btn {
+      background: #f0c040;
+      color: #0a0a0a;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    #send-btn:hover { background: #e0b030; }
+
+    /* Footer */
+    #footer {
+      background: #111111;
+      text-align: center;
+      padding: 6px;
+      font-size: 11px;
+      color: #444;
+      border-top: 1px solid #1a1a1a;
+    }
+    #footer a { color: #666; text-decoration: none; }
+    #footer a:hover { color: #f0c040; }
+
+    #image-input { display: none; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #f0c040; }
+
+    @media (max-width: 768px) {
+      #sidebar {
+        position: fixed;
+        top: 0; left: 0;
+        height: 100vh;
+        z-index: 100;
+        transform: translateX(-100%);
+      }
+      #sidebar.open { transform: translateX(0); }
+      #menu-btn { display: block; }
+      #overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 99;
+      }
+      #overlay.show { display: block; }
+      .message { max-width: 90%; }
+      header h1 { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<div id="sidebar">
+  <h2>🐝 Bee</h2>
+  <button id="new-chat-btn" onclick="newChat()">+ New Chat</button>
+  <a id="interview-btn" href="/interview">🎯 Interview Practice</a>
+  <div id="chat-list"></div>
+  <button id="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<div id="main">
+  <header>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+      <h1>🐝 Bee</h1>
+    </div>
+    <span>Welcome, {{ user_name }}!</span>
+  </header>
+
+  <!-- Camera bar -->
+  <div id="camera-bar">
+    <button id="camera-toggle" onclick="toggleCamera()">📷 Turn on Camera</button>
+    <video id="camera-preview" autoplay muted playsinline></video>
+  </div>
+
+  <div id="chat-box"></div>
+
+  <!-- Multiple images preview -->
+  <div id="images-preview-bar"></div>
+
+  <!-- Input area -->
+  <div id="input-area">
+    <div id="input-row">
+      <button class="input-icon-btn" title="Add Image" onclick="document.getElementById('image-input').click()">🖼️</button>
+      <button class="input-icon-btn" id="voice-btn" title="Voice Input" onclick="startVoice()">🎤</button>
+      <button class="input-icon-btn" id="speak-btn" title="Speak Reply" onclick="toggleSpeak()">🔊</button>
+      <input type="text" id="message-input" placeholder="Message Bee..." autofocus/>
+      <button id="send-btn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <div id="footer">
+    © 2026 Bee AI · Built by <a href="https://www.linkedin.com/in/gadde-guna-yaswanth/" target="_blank">Guna Yaswanth Gadde</a> · All rights reserved
+  </div>
+</div>
+
+<input type="file" id="image-input" accept="image/*" multiple onchange="addImages(event)"/>
+
+<script>
+  let lastReply = "";
+  let currentChatId = null;
+  let selectedImages = [];
+  let isSpeaking = false;
+  let cameraStream = null;
+  let cameraOn = false;
+
+  const input = document.getElementById('message-input');
+
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a') { e.preventDefault(); this.select(); }
+  });
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('show');
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  async function toggleCamera() {
+    const btn = document.getElementById('camera-toggle');
+    const preview = document.getElementById('camera-preview');
+    if (cameraOn) {
+      if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+      preview.style.display = 'none';
+      preview.srcObject = null;
+      btn.innerText = '📷 Turn on Camera';
+      btn.classList.remove('active');
+      cameraOn = false;
+    } else {
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        preview.srcObject = cameraStream;
+        preview.style.display = 'block';
+        btn.innerText = '📷 Turn off Camera';
+        btn.classList.add('active');
+        cameraOn = true;
+      } catch (e) {
+        alert('Camera permission denied. Please allow camera access.');
+      }
+    }
+  }
+
+  function addImages(event) {
+    const files = Array.from(event.target.files);
+    files.forEach(file => selectedImages.push(file));
+    renderImagePreviews();
+    event.target.value = '';
+    input.placeholder = 'Ask something about these images...';
+    input.focus();
+  }
+
+  function renderImagePreviews() {
+    const bar = document.getElementById('images-preview-bar');
+    bar.innerHTML = '';
+    if (selectedImages.length === 0) {
+      bar.style.display = 'none';
+      input.placeholder = 'Message Bee...';
+      return;
+    }
+    bar.style.display = 'flex';
+    selectedImages.forEach((file, index) => {
+      const wrap = document.createElement('div');
+      wrap.classList.add('img-thumb-wrap');
+      const img = document.createElement('img');
+      img.classList.add('img-thumb');
+      img.src = URL.createObjectURL(file);
+      const removeBtn = document.createElement('button');
+      removeBtn.classList.add('img-remove');
+      removeBtn.innerText = '✕';
+      removeBtn.onclick = () => { selectedImages.splice(index, 1); renderImagePreviews(); };
+      wrap.appendChild(img);
+      wrap.appendChild(removeBtn);
+      bar.appendChild(wrap);
+    });
+    const addMore = document.createElement('button');
+    addMore.style.cssText = 'background:#1a1a1a; border:1px dashed #f0c040; color:#f0c040; border-radius:8px; width:50px; height:50px; cursor:pointer; font-size:20px;';
+    addMore.innerText = '+';
+    addMore.title = 'Add more images';
+    addMore.onclick = () => document.getElementById('image-input').click();
+    bar.appendChild(addMore);
+  }
+
+  loadChats();
+
+  function addMessage(sender, text, imgSrcs = []) {
+    const box = document.getElementById('chat-box');
+    const div = document.createElement('div');
+    div.classList.add('message', sender === 'You' ? 'user-msg' : 'bee-msg');
+    div.innerText = (sender === 'You' ? 'You: ' : 'Bee: ') + text;
+
+    // Edit on click for user messages
+    if (sender === 'You') {
+      div.addEventListener('click', function() {
+        input.value = text;
+        input.focus();
+        div.remove();
+      });
+    }
+
+    imgSrcs.forEach(src => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.classList.add('chat-image');
+      div.appendChild(img);
+    });
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function showTyping() {
+    const box = document.getElementById('chat-box');
+    const div = document.createElement('div');
+    div.classList.add('typing');
+    div.id = 'typing-indicator';
+    div.innerText = 'Bee is thinking...';
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function hideTyping() {
+    const el = document.getElementById('typing-indicator');
+    if (el) el.remove();
+  }
+
+  async function newChat() {
+    currentChatId = null;
+    selectedImages = [];
+    renderImagePreviews();
+    document.getElementById('chat-box').innerHTML = '';
+    addMessage('Bee', 'Hi! I am Bee, your personal AI assistant! How can I help you today?');
+    closeSidebar();
+  }
+
+  async function loadChats() {
+    const res = await fetch('/get_chats');
+    const data = await res.json();
+    const list = document.getElementById('chat-list');
+    list.innerHTML = '';
+    (data.chats || []).forEach(chat => {
+      const div = document.createElement('div');
+      div.classList.add('chat-item');
+      if (chat.id === currentChatId) div.classList.add('active');
+      const title = document.createElement('span');
+      title.classList.add('chat-title');
+      title.innerText = chat.title || 'New Chat';
+      title.onclick = () => { loadChat(chat.id); closeSidebar(); };
+      const deleteBtn = document.createElement('button');
+      deleteBtn.classList.add('delete-btn');
+      deleteBtn.innerText = '🗑️';
+      deleteBtn.onclick = (e) => { e.stopPropagation(); deleteChat(chat.id, div); };
+      div.appendChild(title);
+      div.appendChild(deleteBtn);
+      list.appendChild(div);
+    });
+  }
+
+  async function deleteChat(chatId, element) {
+    if (!confirm('Delete this chat?')) return;
+    const res = await fetch(`/delete_chat/${chatId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      element.remove();
+      if (chatId === currentChatId) {
+        currentChatId = null;
+        document.getElementById('chat-box').innerHTML = '';
+        addMessage('Bee', 'Chat deleted! Start a new conversation.');
+      }
+    }
+  }
+
+  async function loadChat(chatId) {
+    const res = await fetch(`/get_messages/${chatId}`);
+    const data = await res.json();
+    currentChatId = chatId;
+    document.getElementById('chat-box').innerHTML = '';
+    (data.messages || []).forEach(m => {
+      addMessage(m.role === 'user' ? 'You' : 'Bee', m.content);
+    });
+    loadChats();
+  }
+
+  async function sendMessage() {
+    const text = input.value.trim();
+
+    if (selectedImages.length > 0) {
+      const question = text || 'What do you see in these images?';
+      input.value = '';
+      const imgSrcs = selectedImages.map(f => URL.createObjectURL(f));
+      addMessage('You', question, imgSrcs);
+      showTyping();
+
+      const formData = new FormData();
+      formData.append('image', selectedImages[0]);
+      formData.append('question', question);
+
+      const remainingImages = selectedImages.slice(1);
+      selectedImages = remainingImages;
+      renderImagePreviews();
+
+      const res = await fetch('/image', { method: 'POST', body: formData });
+      const data = await res.json();
+      hideTyping();
+      lastReply = data.reply;
+      addMessage('Bee', data.reply);
+
+      if (remainingImages.length > 0) {
+        input.placeholder = `${remainingImages.length} more image(s) ready. Ask about them!`;
+      }
+      return;
+    }
+
+    if (!text) return;
+    input.value = '';
+    addMessage('You', text);
+    showTyping();
+
+    if (!currentChatId) {
+      const chatRes = await fetch('/new_chat', { method: 'POST' });
+      const chatData = await chatRes.json();
+      currentChatId = chatData.chat_id;
+    }
+
+    const res = await fetch('/ghost', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, chat_id: currentChatId })
+    });
+    const data = await res.json();
+    hideTyping();
+    lastReply = data.reply;
+    if (data.chat_id) currentChatId = data.chat_id;
+    addMessage('Bee', data.reply);
+    loadChats();
+  }
+
+  function toggleSpeak() {
+    const btn = document.getElementById('speak-btn');
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      isSpeaking = false;
+      btn.classList.remove('active');
+      btn.innerText = '🔊';
+    } else {
+      if (!lastReply) { alert("Nothing to speak yet!"); return; }
+      isSpeaking = true;
+      btn.classList.add('active');
+      btn.innerText = '⏹️';
+      const utterance = new SpeechSynthesisUtterance(lastReply);
+      utterance.rate = 1;
+      utterance.onend = () => {
+        isSpeaking = false;
+        btn.classList.remove('active');
+        btn.innerText = '🔊';
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+
+  function startVoice() {
+    const btn = document.getElementById('voice-btn');
+    btn.classList.add('active');
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-US';
+    recognition.start();
+    recognition.onresult = (e) => {
+      input.value = e.results[0][0].transcript;
+      btn.classList.remove('active');
+      sendMessage();
+    };
+    recognition.onerror = () => {
+      btn.classList.remove('active');
+      alert("Could not hear you, try again!");
+    };
+    recognition.onend = () => btn.classList.remove('active');
+  }
+
+  async function logout() {
+    await fetch('/logout', { method: 'POST' });
+    window.location.href = '/';
+  }
+
+  addMessage('Bee', 'Hi! I am Bee, your personal AI assistant! How can I help you today?');
+  loadChats();
+</script>
+</body>
+</html>

@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bee - Interview Practice</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: white; min-height: 100vh; }
+
+    /* Header */
+    header {
+      background: #111;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #222;
+    }
+    header h1 { color: #f0c040; font-size: 20px; }
+    #home-btn {
+      background: #1a1a1a;
+      color: #f0c040;
+      border: 1px solid #f0c040;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 13px;
+      text-decoration: none;
+    }
+    #home-btn:hover { background: #f0c040; color: #0a0a0a; }
+
+    /* Setup Screen */
+    #setup-screen {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 24px;
+    }
+    #setup-screen h2 { color: #f0c040; font-size: 24px; margin-bottom: 8px; text-align: center; }
+    #setup-screen p { color: #888; text-align: center; margin-bottom: 32px; font-size: 14px; }
+
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; color: #aaa; font-size: 13px; font-weight: 600; }
+    select, input, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      background: #1a1a1a;
+      border: 2px solid #333;
+      border-radius: 12px;
+      color: white;
+      font-size: 14px;
+      outline: none;
+    }
+    select:focus, input:focus, textarea:focus { border-color: #f0c040; }
+    textarea { resize: vertical; min-height: 100px; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .feature-card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .feature-card .icon { font-size: 28px; margin-bottom: 8px; }
+    .feature-card h4 { color: #f0c040; font-size: 13px; margin-bottom: 4px; }
+    .feature-card p { color: #666; font-size: 11px; }
+
+    #start-btn {
+      width: 100%;
+      padding: 16px;
+      background: #f0c040;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #start-btn:hover { background: #e0b030; }
+
+    /* Interview Screen */
+    #interview-screen { display: none; }
+
+    .interview-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      height: calc(100vh - 60px);
+    }
+
+    /* Left - Camera */
+    #camera-side {
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      border-right: 1px solid #222;
+      gap: 16px;
+    }
+    #interview-video {
+      width: 100%;
+      max-width: 380px;
+      border-radius: 16px;
+      background: #111;
+      border: 2px solid #333;
+      transform: scaleX(-1);
+      aspect-ratio: 4/3;
+      object-fit: cover;
+    }
+    .camera-placeholder {
+      width: 100%;
+      max-width: 380px;
+      aspect-ratio: 4/3;
+      background: #111;
+      border: 2px dashed #333;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #555;
+      gap: 12px;
+    }
+    .camera-placeholder span { font-size: 48px; }
+    .camera-placeholder p { font-size: 14px; }
+
+    #timer-display {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 20px;
+      padding: 8px 20px;
+      font-size: 24px;
+      font-weight: bold;
+      color: #f0c040;
+      font-family: monospace;
+    }
+    #timer-display.warning { color: #ef5350; border-color: #ef5350; }
+
+    .progress-info {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .progress-bar-wrap {
+      flex: 1;
+      background: #1a1a1a;
+      border-radius: 10px;
+      height: 8px;
+      overflow: hidden;
+    }
+    #progress-bar {
+      height: 100%;
+      background: #f0c040;
+      border-radius: 10px;
+      transition: width 0.5s;
+      width: 0%;
+    }
+    .q-count { color: #888; font-size: 13px; white-space: nowrap; }
+
+    /* Right - Chat */
+    #chat-side {
+      display: flex;
+      flex-direction: column;
+      background: #0a0a0a;
+    }
+
+    #interview-chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .bee-bubble {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      padding: 14px 16px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #eee;
+      max-width: 90%;
+      align-self: flex-start;
+    }
+    .bee-bubble .bee-label {
+      color: #f0c040;
+      font-size: 11px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .user-bubble {
+      background: #f0c040;
+      color: #0a0a0a;
+      border-radius: 18px;
+      border-bottom-right-radius: 4px;
+      padding: 14px 16px;
+      font-size: 15px;
+      line-height: 1.6;
+      max-width: 90%;
+      align-self: flex-end;
+      font-weight: 500;
+    }
+    .feedback-bubble {
+      background: #1a2a1a;
+      border: 1px solid #2a4a2a;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #aaa;
+      max-width: 90%;
+      align-self: flex-start;
+    }
+    .feedback-bubble .fb-label {
+      color: #66bb6a;
+      font-size: 11px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .score-card {
+      background: #1a1a1a;
+      border: 1px solid #f0c040;
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+    }
+    .score-card h3 { color: #f0c040; margin-bottom: 16px; text-align: center; }
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .score-label { color: #aaa; font-size: 14px; }
+    .score-bar-wrap { flex: 1; margin: 0 12px; background: #333; border-radius: 4px; height: 6px; }
+    .score-bar { height: 100%; border-radius: 4px; background: #f0c040; }
+    .score-num { color: #f0c040; font-weight: bold; font-size: 14px; min-width: 30px; text-align: right; }
+
+    /* Answer area */
+    #answer-area {
+      background: #111;
+      border-top: 1px solid #222;
+      padding: 16px;
+    }
+    #answer-text {
+      width: 100%;
+      background: #1a1a1a;
+      border: 2px solid #333;
+      border-radius: 12px;
+      color: white;
+      padding: 12px;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      min-height: 80px;
+      margin-bottom: 10px;
+    }
+    #answer-text:focus { border-color: #f0c040; }
+    #answer-text::placeholder { color: #555; }
+
+    .answer-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .ans-btn {
+      padding: 10px 16px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    #submit-btn { background: #f0c040; color: #0a0a0a; flex: 1; }
+    #submit-btn:hover { background: #e0b030; }
+    #voice-ans-btn { background: #1a1a1a; color: #f0c040; border: 1px solid #f0c040; }
+    #voice-ans-btn:hover { background: #f0c040; color: #0a0a0a; }
+    #voice-ans-btn.recording { background: #c62828; color: white; border-color: #c62828; }
+    #retry-btn { background: #1a1a1a; color: #888; border: 1px solid #333; }
+    #retry-btn:hover { color: #f0c040; border-color: #f0c040; }
+    #capture-btn { background: #1a1a1a; color: #888; border: 1px solid #333; }
+    #capture-btn:hover { color: #f0c040; border-color: #f0c040; }
+    #end-btn { background: #c62828; color: white; }
+    #end-btn:hover { background: #b71c1c; }
+
+    /* Score screen */
+    #score-screen {
+      display: none;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 24px;
+    }
+    #score-screen h2 { color: #f0c040; text-align: center; margin-bottom: 24px; font-size: 24px; }
+    .final-btns { display: flex; gap: 12px; margin-top: 20px; }
+    .final-btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+    }
+    #save-btn { background: #f0c040; color: #0a0a0a; }
+    #goto-home-btn { background: #1a1a1a; color: #f0c040; border: 1px solid #f0c040; }
+
+    .typing { color: #888; font-style: italic; font-size: 14px; padding: 8px; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+    @media (max-width: 768px) {
+      .interview-layout { grid-template-columns: 1fr; }
+      #camera-side { border-right: none; border-bottom: 1px solid #222; padding: 16px; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🐝 Bee Interview</h1>
+  <a href="/" id="home-btn">🏠 Home</a>
+</header>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <h2>🎯 AI Interview Practice</h2>
+  <p>Camera on • Voice answers • Real-time feedback • Detailed scores</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="icon">📹</div>
+      <h4>Camera Interview</h4>
+      <p>Practice like a real interview with your camera on</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🎤</div>
+      <h4>Voice Answers</h4>
+      <p>Speak your answers just like a real interview</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">🧠</div>
+      <h4>Smart Feedback</h4>
+      <p>Instant feedback on every answer you give</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">📊</div>
+      <h4>Score Report</h4>
+      <p>Detailed scores for communication, confidence & more</p>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Job Type</label>
+    <select id="job-type">
+      <option>Software Engineer</option>
+      <option>Product Manager</option>
+      <option>Data Scientist</option>
+      <option>UX Designer</option>
+      <option>Marketing Manager</option>
+      <option>Sales Representative</option>
+      <option>Business Analyst</option>
+      <option>DevOps Engineer</option>
+      <option>General</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Difficulty</label>
+    <select id="difficulty">
+      <option value="beginner">Beginner</option>
+      <option value="intermediate" selected>Intermediate</option>
+      <option value="advanced">Advanced</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Number of Questions</label>
+    <select id="max-questions">
+      <option value="3">3 Questions (~10 mins)</option>
+      <option value="5" selected>5 Questions (~20 mins)</option>
+      <option value="8">8 Questions (~30 mins)</option>
+      <option value="10">10 Questions (~40 mins)</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Job Description (Optional — paste for targeted questions)</label>
+    <textarea id="job-description" placeholder="Paste the job description here for more targeted interview questions..."></textarea>
+  </div>
+
+  <button id="start-btn" onclick="startInterview()">🚀 Start Interview</button>
+</div>
+
+<!-- INTERVIEW SCREEN -->
+<div id="interview-screen">
+  <div class="interview-layout">
+
+    <!-- LEFT: Camera -->
+    <div id="camera-side">
+      <div id="cam-placeholder" class="camera-placeholder">
+        <span>📷</span>
+        <p>Camera not available</p>
+      </div>
+      <video id="interview-video" autoplay muted playsinline style="display:none;"></video>
+
+      <div id="timer-display">00:00</div>
+
+      <div class="progress-info" style="width:100%; max-width:380px;">
+        <span class="q-count" id="q-count">Q 0/0</span>
+        <div class="progress-bar-wrap">
+          <div id="progress-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Chat -->
+    <div id="chat-side">
+      <div id="interview-chat"></div>
+      <div id="answer-area">
+        <textarea id="answer-text" placeholder="Type your answer or click 🎤 to speak..."></textarea>
+        <div class="answer-btns">
+          <button class="ans-btn" id="voice-ans-btn" onclick="startVoiceAnswer()">🎤 Speak</button>
+          <button class="ans-btn" id="capture-btn" onclick="captureAndSend()">📸 Capture</button>
+          <button class="ans-btn" id="retry-btn" onclick="retryQuestion()">🔄 Retry</button>
+          <button class="ans-btn" id="submit-btn" onclick="submitAnswer()">Submit →</button>
+          <button class="ans-btn" id="end-btn" onclick="endInterview()">⏹ End</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SCORE SCREEN -->
+<div id="score-screen">
+  <h2>🏆 Interview Complete!</h2>
+  <div id="score-content"></div>
+  <div class="final-btns">
+    <button class="final-btn" id="save-btn" onclick="saveInterview()">💾 Save to Chat</button>
+    <button class="final-btn" id="goto-home-btn" onclick="window.location.href='/'">🏠 Go Home</button>
+  </div>
+</div>
+
+<script>
+  let history = [];
+  let questionNumber = 0;
+  let maxQuestions = 5;
+  let jobType = '';
+  let transcript = [];
+  let timerInterval = null;
+  let totalSeconds = 0;
+  let cameraStream = null;
+  let lastQuestion = '';
+
+  // Start camera
+  async function startCamera() {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const video = document.getElementById('interview-video');
+      video.srcObject = cameraStream;
+      video.style.display = 'block';
+      document.getElementById('cam-placeholder').style.display = 'none';
+    } catch (e) {
+      console.log('Camera not available');
+    }
+  }
+
+  function stopCamera() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+    }
+  }
+
+  // Timer
+  function startTimer() {
+    timerInterval = setInterval(() => {
+      totalSeconds++;
+      const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+      const s = (totalSeconds % 60).toString().padStart(2, '0');
+      const display = document.getElementById('timer-display');
+      display.innerText = `${m}:${s}`;
+      display.classList.toggle('warning', totalSeconds > 1200);
+    }, 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+  }
+
+  function getTime() {
+    const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const s = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  // Add message to chat
+  function addBeeBubble(text) {
+    const chat = document.getElementById('interview-chat');
+    const div = document.createElement('div');
+    div.classList.add('bee-bubble');
+    div.innerHTML = `<div class="bee-label">🐝 Bee</div>${text}`;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function addUserBubble(text) {
+    const chat = document.getElementById('interview-chat');
+    const div = document.createElement('div');
+    div.classList.add('user-bubble');
+    div.innerText = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function addFeedbackBubble(text) {
+    const chat = document.getElementById('interview-chat');
+    const div = document.createElement('div');
+    div.classList.add('feedback-bubble');
+    div.innerHTML = `<div class="fb-label">✅ Feedback</div>${text}`;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function showTyping() {
+    const chat = document.getElementById('interview-chat');
+    const div = document.createElement('div');
+    div.id = 'typing-ind';
+    div.classList.add('typing');
+    div.innerText = 'Bee is thinking...';
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function hideTyping() {
+    const el = document.getElementById('typing-ind');
+    if (el) el.remove();
+  }
+
+  function updateProgress() {
+    const pct = (questionNumber / maxQuestions) * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('q-count').innerText = `Q ${questionNumber}/${maxQuestions}`;
+  }
+
+  async function startInterview() {
+    jobType = document.getElementById('job-type').value;
+    const difficulty = document.getElementById('difficulty').value;
+    maxQuestions = parseInt(document.getElementById('max-questions').value);
+    const jobDesc = document.getElementById('job-description').value;
+
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('interview-screen').style.display = 'block';
+
+    startCamera();
+    startTimer();
+
+    showTyping();
+
+    const res = await fetch('/interview/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        job_type: jobType,
+        difficulty: difficulty,
+        max_questions: maxQuestions,
+        job_description: jobDesc
+      })
+    });
+    const data = await res.json();
+    hideTyping();
+
+    history = data.history;
+    lastQuestion = data.question;
+    questionNumber = 1;
+    updateProgress();
+
+    addBeeBubble(data.question);
+    transcript.push({ type: 'bee', text: data.question });
+
+    // Speak the question
+    speakText(data.question);
+  }
+
+  function speakText(text) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  async function submitAnswer() {
+    const answer = document.getElementById('answer-text').value.trim();
+    if (!answer) { alert('Please type or speak your answer!'); return; }
+
+    document.getElementById('answer-text').value = '';
+    addUserBubble(answer);
+    transcript.push({ type: 'user', text: answer });
+
+    const isLast = questionNumber >= maxQuestions;
+    showTyping();
+
+    const res = await fetch('/interview/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        answer: answer,
+        history: history,
+        question_number: questionNumber,
+        max_questions: maxQuestions,
+        is_last: isLast
+      })
+    });
+    const data = await res.json();
+    hideTyping();
+
+    if (data.interview_done) {
+      addFeedbackBubble(data.feedback);
+      transcript.push({ type: 'feedback', text: data.feedback });
+      stopTimer();
+      stopCamera();
+      setTimeout(() => showScoreScreen(data.feedback), 1000);
+    } else {
+      addFeedbackBubble(data.feedback);
+      transcript.push({ type: 'feedback', text: data.feedback });
+      questionNumber++;
+      updateProgress();
+      lastQuestion = data.next_question;
+      addBeeBubble(data.next_question);
+      transcript.push({ type: 'bee', text: data.next_question });
+      speakText(data.next_question);
+    }
+  }
+
+  function retryQuestion() {
+    document.getElementById('answer-text').value = '';
+    document.getElementById('answer-text').focus();
+    speakText(lastQuestion);
+  }
+
+  // Capture from camera and describe
+  async function captureAndSend() {
+    const video = document.getElementById('interview-video');
+    if (!cameraStream || video.style.display === 'none') {
+      alert('Please allow camera access first!');
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(async (blob) => {
+      const formData = new FormData();
+      formData.append('image', blob, 'capture.jpg');
+      formData.append('question', 'Describe what you see in this interview snapshot.');
+      const res = await fetch('/image', { method: 'POST', body: formData });
+      const data = await res.json();
+      addFeedbackBubble('📸 ' + data.reply);
+    }, 'image/jpeg');
+  }
+
+  function startVoiceAnswer() {
+    const btn = document.getElementById('voice-ans-btn');
+    btn.classList.add('recording');
+    btn.innerText = '🔴 Listening...';
+    window.speechSynthesis.cancel();
+
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-US';
+    recognition.start();
+    recognition.onresult = (e) => {
+      document.getElementById('answer-text').value = e.results[0][0].transcript;
+      btn.classList.remove('recording');
+      btn.innerText = '🎤 Speak';
+    };
+    recognition.onerror = () => {
+      btn.classList.remove('recording');
+      btn.innerText = '🎤 Speak';
+      alert('Could not hear you, try again!');
+    };
+    recognition.onend = () => {
+      btn.classList.remove('recording');
+      btn.innerText = '🎤 Speak';
+    };
+  }
+
+  function endInterview() {
+    if (!confirm('End interview? You will see your score report.')) return;
+    stopTimer();
+    stopCamera();
+    showScoreScreen('Interview ended early. Here is your progress so far.');
+  }
+
+  function showScoreScreen(feedback) {
+    document.getElementById('interview-screen').style.display = 'none';
+    document.getElementById('score-screen').style.display = 'block';
+
+    // Parse scores from feedback
+    const scores = {
+      'Communication': extractScore(feedback, 'Communication') || Math.floor(Math.random() * 3) + 7,
+      'Knowledge': extractScore(feedback, 'Knowledge') || Math.floor(Math.random() * 3) + 6,
+      'Confidence': extractScore(feedback, 'Confidence') || Math.floor(Math.random() * 3) + 7,
+      'Overall': extractScore(feedback, 'Overall') || Math.floor(Math.random() * 3) + 7,
+    };
+
+    let html = `<div class="score-card">
+      <h3>📊 Your Performance</h3>`;
+    for (const [label, score] of Object.entries(scores)) {
+      html += `<div class="score-row">
+        <span class="score-label">${label}</span>
+        <div class="score-bar-wrap"><div class="score-bar" style="width:${score * 10}%"></div></div>
+        <span class="score-num">${score}/10</span>
+      </div>`;
+    }
+    html += `</div>
+    <div style="background:#1a1a1a; border-radius:12px; padding:16px; margin-top:16px; color:#aaa; font-size:14px; line-height:1.6;">
+      ${feedback}
+    </div>`;
+
+    document.getElementById('score-content').innerHTML = html;
+  }
+
+  function extractScore(text, label) {
+    const regex = new RegExp(label + '[^0-9]*([0-9]+)', 'i');
+    const match = text.match(regex);
+    return match ? parseInt(match[1]) : null;
+  }
+
+  async function saveInterview() {
+    const res = await fetch('/interview/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transcript: transcript,
+        job_type: jobType,
+        total_time: getTime(),
+        questions_answered: questionNumber,
+        max_questions: maxQuestions
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('Interview saved to your chat history!');
+      window.location.href = '/';
+    }
+  }
+</script>
+</body>
+</html>

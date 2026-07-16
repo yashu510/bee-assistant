@@ -1,0 +1,8 @@
+.env
+venv/
+__pycache__/
+*.pyc
+temp_*
+.venv/
+.env.save
+.env.save
