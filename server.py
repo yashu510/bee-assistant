@@ -271,9 +271,9 @@ def interview_start():
         system_prompt = f"""You are Bee, a professional AI interviewer conducting a {difficulty} level interview for a {job_type} position.
 Your job:
 1. Ask ONE clear interview question at a time
-2. After each answer give detailed feedback
+2. After each answer give very specific detailed feedback about exactly what the candidate said
 3. Then ask the next question
-4. Be encouraging but honest
+4. Be encouraging but brutally honest and specific
 5. Keep questions relevant to {job_type}{jd_section}
 Start by introducing yourself briefly and asking the first question.
 Respond in plain text only, no markdown, no bullet points, no asterisks.
@@ -300,27 +300,55 @@ def interview_answer():
         question_number = data.get('question_number', 1)
         max_questions = data.get('max_questions', 5)
         is_last = data.get('is_last', False)
+        job_type = data.get('job_type', 'General')
+
         if is_last:
-            prompt = f"This was the last question. The candidate answered: '{answer}'. Give detailed feedback, then give an overall interview summary with scores out of 10 for Communication, Knowledge, Confidence, and Overall Performance. Plain text only."
+            prompt = f"""This was the last question for the {job_type} interview. The candidate answered: '{answer}'.
+
+Give very specific and detailed feedback about THIS exact answer. Mention what they said specifically, what was good, what was missing, and how they could improve. Then give an overall summary with exact scores out of 10 for:
+- Communication: how clearly they expressed themselves
+- Knowledge: how much they knew about the topic
+- Confidence: how confident their answers sounded
+- Overall Performance: overall score
+
+Format the scores exactly like this:
+Communication: X/10
+Knowledge: X/10
+Confidence: X/10
+Overall Performance: X/10
+
+Plain text only."""
         else:
-            prompt = f"The candidate answered: '{answer}'. Give brief helpful feedback (2-3 sentences), then ask interview question number {question_number + 1} of {max_questions}. Format: FEEDBACK: [your feedback] NEXT QUESTION: [your question]. Plain text only."
+            prompt = f"""The candidate answered: '{answer}' for question {question_number} of {max_questions} in a {job_type} interview.
+
+Give specific feedback about THIS exact answer in 2-3 sentences. Mention what they said specifically, what was good and what could be better. Then ask the next question.
+
+Format exactly like:
+FEEDBACK: [your specific feedback about their exact answer]
+NEXT QUESTION: [your next interview question]
+
+Plain text only."""
+
         history.append({"role": "user", "content": prompt})
         message = client.messages.create(
             model="claude-opus-4-6",
             max_tokens=1024,
-            system="You are Bee, a professional AI interviewer. Be encouraging but honest. Give specific, actionable feedback. Plain text only, no markdown. Never mention Claude or Anthropic.",
+            system=f"You are Bee, a professional AI interviewer for {job_type} positions. Give specific, actionable feedback based on exactly what the candidate said. Never give generic feedback. Always reference their actual answer. Plain text only, no markdown. Never mention Claude or Anthropic.",
             messages=history
         )
         response = clean_markdown(message.content[0].text)
+
         if is_last:
             return jsonify({"feedback": response, "next_question": "", "interview_done": True})
+
         if "NEXT QUESTION:" in response:
             parts = response.split("NEXT QUESTION:")
             feedback = parts[0].replace("FEEDBACK:", "").strip()
             next_question = parts[1].strip()
         else:
             feedback = response
-            next_question = "Tell me more about your experience."
+            next_question = "Can you tell me more about your experience?"
+
         return jsonify({"feedback": feedback, "next_question": next_question, "interview_done": False})
     except Exception as e:
         return jsonify({"error": str(e)})
