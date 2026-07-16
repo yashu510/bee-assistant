@@ -217,6 +217,7 @@
       color: #aaa;
       max-width: 90%;
       align-self: flex-start;
+      line-height: 1.6;
     }
     .feedback-bubble .fb-label {
       color: #66bb6a;
@@ -260,6 +261,7 @@
       outline: none;
       min-height: 80px;
       margin-bottom: 10px;
+      font-family: 'Segoe UI', sans-serif;
     }
     #answer-text:focus { border-color: #f0c040; }
     #answer-text::placeholder { color: #555; }
@@ -280,8 +282,6 @@
     #voice-ans-btn.recording { background: #c62828; color: white; border-color: #c62828; }
     #retry-btn { background: #1a1a1a; color: #888; border: 1px solid #333; }
     #retry-btn:hover { color: #f0c040; border-color: #f0c040; }
-    #capture-btn { background: #1a1a1a; color: #888; border: 1px solid #333; }
-    #capture-btn:hover { color: #f0c040; border-color: #f0c040; }
     #end-btn { background: #c62828; color: white; }
     #end-btn:hover { background: #b71c1c; }
 
@@ -344,12 +344,12 @@
     <div class="feature-card">
       <div class="icon">🧠</div>
       <h4>Smart Feedback</h4>
-      <p>Instant feedback on every answer you give</p>
+      <p>Specific feedback on exactly what you said</p>
     </div>
     <div class="feature-card">
       <div class="icon">📊</div>
       <h4>Score Report</h4>
-      <p>Detailed scores for communication, confidence & more</p>
+      <p>Detailed scores based on your actual performance</p>
     </div>
   </div>
 
@@ -416,10 +416,9 @@
     <div id="chat-side">
       <div id="interview-chat"></div>
       <div id="answer-area">
-        <textarea id="answer-text" placeholder="Type your answer or click 🎤 to speak..."></textarea>
+        <textarea id="answer-text" placeholder="Type your answer here or click 🎤 to speak..."></textarea>
         <div class="answer-btns">
           <button class="ans-btn" id="voice-ans-btn" onclick="startVoiceAnswer()">🎤 Speak</button>
-          <button class="ans-btn" id="capture-btn" onclick="captureAndSend()">📸 Capture</button>
           <button class="ans-btn" id="retry-btn" onclick="retryQuestion()">🔄 Retry</button>
           <button class="ans-btn" id="submit-btn" onclick="submitAnswer()">Submit →</button>
           <button class="ans-btn" id="end-btn" onclick="endInterview()">⏹ End</button>
@@ -449,6 +448,7 @@
   let totalSeconds = 0;
   let cameraStream = null;
   let lastQuestion = '';
+  let allAnswers = [];
 
   async function startCamera() {
     try {
@@ -591,6 +591,10 @@
     document.getElementById('answer-text').value = '';
     addUserBubble(answer);
     transcript.push({ type: 'user', text: answer });
+    allAnswers.push({ question: lastQuestion, answer: answer });
+
+    // Add answer to history so Bee remembers full context
+    history.push({ role: 'user', content: answer });
 
     const isLast = questionNumber >= maxQuestions;
     showTyping();
@@ -603,7 +607,9 @@
         history: history,
         question_number: questionNumber,
         max_questions: maxQuestions,
-        is_last: isLast
+        is_last: isLast,
+        job_type: jobType,
+        last_question: lastQuestion
       })
     });
     const data = await res.json();
@@ -618,6 +624,7 @@
       const finalText = data.feedback || "Great interview! Well done!";
       addFeedbackBubble(finalText);
       transcript.push({ type: 'feedback', text: finalText });
+      history.push({ role: 'assistant', content: finalText });
       stopTimer();
       stopCamera();
       setTimeout(() => showScoreScreen(finalText), 1000);
@@ -625,12 +632,14 @@
       const feedbackText = data.feedback || "Good answer!";
       addFeedbackBubble(feedbackText);
       transcript.push({ type: 'feedback', text: feedbackText });
+      history.push({ role: 'assistant', content: feedbackText });
       questionNumber++;
       updateProgress();
       const nextQ = data.next_question || "Tell me more about your experience.";
       lastQuestion = nextQ;
       addBeeBubble(nextQ);
       transcript.push({ type: 'bee', text: nextQ });
+      history.push({ role: 'assistant', content: nextQ });
       speakText(nextQ);
     }
   }
@@ -639,26 +648,6 @@
     document.getElementById('answer-text').value = '';
     document.getElementById('answer-text').focus();
     speakText(lastQuestion);
-  }
-
-  async function captureAndSend() {
-    const video = document.getElementById('interview-video');
-    if (!cameraStream || video.style.display === 'none') {
-      alert('Please allow camera access first!');
-      return;
-    }
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    canvas.toBlob(async (blob) => {
-      const formData = new FormData();
-      formData.append('image', blob, 'capture.jpg');
-      formData.append('question', 'Describe what you see in this interview snapshot.');
-      const res = await fetch('/image', { method: 'POST', body: formData });
-      const data = await res.json();
-      addFeedbackBubble('📸 ' + (data.reply || 'Could not analyze image.'));
-    }, 'image/jpeg');
   }
 
   function startVoiceAnswer() {
@@ -690,40 +679,67 @@
     if (!confirm('End interview? You will see your score report.')) return;
     stopTimer();
     stopCamera();
-    showScoreScreen('Interview ended. Here is your progress so far!');
+
+    const answersGiven = allAnswers.length;
+    if (answersGiven === 0) {
+      showScoreScreen('You ended the interview without answering any questions. Please complete at least one question to get a real score!');
+    } else {
+      const summary = allAnswers.map((a, i) =>
+        `Q${i+1}: ${a.question}\nYour answer: ${a.answer}`
+      ).join('\n\n');
+      showScoreScreen(`Interview ended after ${answersGiven} answer(s).\n\n${summary}`);
+    }
   }
 
   function showScoreScreen(feedback) {
     document.getElementById('interview-screen').style.display = 'none';
     document.getElementById('score-screen').style.display = 'block';
 
-    const scores = {
-      'Communication': extractScore(feedback, 'Communication') || Math.floor(Math.random() * 2) + 7,
-      'Knowledge': extractScore(feedback, 'Knowledge') || Math.floor(Math.random() * 2) + 7,
-      'Confidence': extractScore(feedback, 'Confidence') || Math.floor(Math.random() * 2) + 7,
-      'Overall': extractScore(feedback, 'Overall') || Math.floor(Math.random() * 2) + 7,
-    };
+    const answersGiven = allAnswers.length;
 
-    let html = `<div class="score-card"><h3>📊 Your Performance</h3>`;
-    for (const [label, score] of Object.entries(scores)) {
-      html += `<div class="score-row">
-        <span class="score-label">${label}</span>
-        <div class="score-bar-wrap"><div class="score-bar" style="width:${score * 10}%"></div></div>
-        <span class="score-num">${score}/10</span>
-      </div>`;
+    // Only show scores if at least one answer was given
+    const scores = answersGiven > 0 ? {
+      'Communication': extractScore(feedback, 'Communication') || extractScore(feedback, 'communication') || null,
+      'Knowledge': extractScore(feedback, 'Knowledge') || extractScore(feedback, 'knowledge') || null,
+      'Confidence': extractScore(feedback, 'Confidence') || extractScore(feedback, 'confidence') || null,
+      'Overall': extractScore(feedback, 'Overall') || extractScore(feedback, 'overall') || null,
+    } : null;
+
+    let html = '';
+
+    if (scores && Object.values(scores).some(s => s !== null)) {
+      html += `<div class="score-card"><h3>📊 Your Performance</h3>`;
+      for (const [label, score] of Object.entries(scores)) {
+        if (score !== null) {
+          html += `<div class="score-row">
+            <span class="score-label">${label}</span>
+            <div class="score-bar-wrap"><div class="score-bar" style="width:${score * 10}%"></div></div>
+            <span class="score-num">${score}/10</span>
+          </div>`;
+        }
+      }
+      html += `</div>`;
     }
-    html += `</div>
-    <div style="background:#1a1a1a; border-radius:12px; padding:16px; margin-top:16px; color:#aaa; font-size:14px; line-height:1.6;">
-      ${feedback}
-    </div>`;
+
+    html += `<div style="background:#1a1a1a; border-radius:12px; padding:16px; margin-top:16px; color:#ccc; font-size:14px; line-height:1.8; white-space:pre-wrap;">${feedback}</div>`;
 
     document.getElementById('score-content').innerHTML = html;
   }
 
   function extractScore(text, label) {
-    const regex = new RegExp(label + '[^0-9]*([0-9]+)', 'i');
-    const match = text.match(regex);
-    return match ? parseInt(match[1]) : null;
+    const patterns = [
+      new RegExp(label + '\\s*:\\s*([0-9]+)\\s*/\\s*10', 'i'),
+      new RegExp(label + '[^0-9]*([0-9]+)\\s*/\\s*10', 'i'),
+      new RegExp(label + '[^0-9]*([0-9]+)', 'i'),
+    ];
+    for (const regex of patterns) {
+      const match = text.match(regex);
+      if (match) {
+        const score = parseInt(match[1]);
+        if (score >= 1 && score <= 10) return score;
+      }
+    }
+    return null;
   }
 
   async function saveInterview() {
