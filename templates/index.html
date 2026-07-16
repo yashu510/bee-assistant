@@ -120,36 +120,6 @@
       cursor: pointer;
     }
 
-    /* Camera bar */
-    #camera-bar {
-      background: #111111;
-      border-bottom: 1px solid #222;
-      padding: 8px 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    #camera-toggle {
-      background: #1a1a1a;
-      color: #f0c040;
-      border: 1px solid #333;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-    #camera-toggle:hover { background: #f0c040; color: #0a0a0a; }
-    #camera-toggle.active { background: #c62828; color: white; border-color: #c62828; }
-    #camera-preview {
-      width: 120px;
-      height: 80px;
-      border-radius: 8px;
-      object-fit: cover;
-      transform: scaleX(-1);
-      display: none;
-      border: 1px solid #333;
-    }
-
     #chat-box {
       flex: 1;
       overflow-y: auto;
@@ -204,7 +174,7 @@
     }
     .chat-image { max-width: 200px; border-radius: 12px; margin-top: 8px; display: block; }
 
-    /* Images preview bar */
+    /* Files preview bar */
     #images-preview-bar {
       display: none;
       flex-wrap: wrap;
@@ -220,6 +190,17 @@
       object-fit: cover;
       border-radius: 8px;
       border: 1px solid #333;
+    }
+    .file-thumb {
+      width: 50px;
+      height: 50px;
+      background: #333;
+      border-radius: 8px;
+      border: 1px solid #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
     }
     .img-remove {
       position: absolute;
@@ -302,7 +283,7 @@
     #footer a { color: #666; text-decoration: none; }
     #footer a:hover { color: #f0c040; }
 
-    #image-input { display: none; }
+    #file-input { display: none; }
 
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #111; }
@@ -354,21 +335,15 @@
     <span>Welcome, {{ user_name }}!</span>
   </header>
 
-  <!-- Camera bar -->
-  <div id="camera-bar">
-    <button id="camera-toggle" onclick="toggleCamera()">📷 Turn on Camera</button>
-    <video id="camera-preview" autoplay muted playsinline></video>
-  </div>
-
   <div id="chat-box"></div>
 
-  <!-- Multiple images preview -->
+  <!-- Files preview -->
   <div id="images-preview-bar"></div>
 
   <!-- Input area -->
   <div id="input-area">
     <div id="input-row">
-      <button class="input-icon-btn" title="Add Image" onclick="document.getElementById('image-input').click()">🖼️</button>
+      <button class="input-icon-btn" title="Add File" onclick="document.getElementById('file-input').click()">📎</button>
       <button class="input-icon-btn" id="voice-btn" title="Voice Input" onclick="startVoice()">🎤</button>
       <button class="input-icon-btn" id="speak-btn" title="Speak Reply" onclick="toggleSpeak()">🔊</button>
       <input type="text" id="message-input" placeholder="Message Bee..." autofocus/>
@@ -381,15 +356,14 @@
   </div>
 </div>
 
-<input type="file" id="image-input" accept="image/*" multiple onchange="addImages(event)"/>
+<!-- Accept ALL file types -->
+<input type="file" id="file-input" accept="*/*" multiple onchange="addFiles(event)"/>
 
 <script>
   let lastReply = "";
   let currentChatId = null;
-  let selectedImages = [];
+  let selectedFiles = [];
   let isSpeaking = false;
-  let cameraStream = null;
-  let cameraOn = false;
 
   const input = document.getElementById('message-input');
 
@@ -408,68 +382,55 @@
     document.getElementById('overlay').classList.remove('show');
   }
 
-  async function toggleCamera() {
-    const btn = document.getElementById('camera-toggle');
-    const preview = document.getElementById('camera-preview');
-    if (cameraOn) {
-      if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
-      cameraStream = null;
-      preview.style.display = 'none';
-      preview.srcObject = null;
-      btn.innerText = '📷 Turn on Camera';
-      btn.classList.remove('active');
-      cameraOn = false;
-    } else {
-      try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        preview.srcObject = cameraStream;
-        preview.style.display = 'block';
-        btn.innerText = '📷 Turn off Camera';
-        btn.classList.add('active');
-        cameraOn = true;
-      } catch (e) {
-        alert('Camera permission denied. Please allow camera access.');
-      }
-    }
-  }
-
-  function addImages(event) {
+  function addFiles(event) {
     const files = Array.from(event.target.files);
-    files.forEach(file => selectedImages.push(file));
-    renderImagePreviews();
+    files.forEach(file => selectedFiles.push(file));
+    renderFilePreviews();
     event.target.value = '';
-    input.placeholder = 'Ask something about these images...';
+    input.placeholder = 'Ask something about these files...';
     input.focus();
   }
 
-  function renderImagePreviews() {
+  function renderFilePreviews() {
     const bar = document.getElementById('images-preview-bar');
     bar.innerHTML = '';
-    if (selectedImages.length === 0) {
+    if (selectedFiles.length === 0) {
       bar.style.display = 'none';
       input.placeholder = 'Message Bee...';
       return;
     }
     bar.style.display = 'flex';
-    selectedImages.forEach((file, index) => {
+    selectedFiles.forEach((file, index) => {
       const wrap = document.createElement('div');
       wrap.classList.add('img-thumb-wrap');
-      const img = document.createElement('img');
-      img.classList.add('img-thumb');
-      img.src = URL.createObjectURL(file);
+
+      const isImage = file.type.startsWith('image/');
+      if (isImage) {
+        const img = document.createElement('img');
+        img.classList.add('img-thumb');
+        img.src = URL.createObjectURL(file);
+        wrap.appendChild(img);
+      } else {
+        const fileDiv = document.createElement('div');
+        fileDiv.classList.add('file-thumb');
+        fileDiv.innerText = '📄';
+        fileDiv.title = file.name;
+        wrap.appendChild(fileDiv);
+      }
+
       const removeBtn = document.createElement('button');
       removeBtn.classList.add('img-remove');
       removeBtn.innerText = '✕';
-      removeBtn.onclick = () => { selectedImages.splice(index, 1); renderImagePreviews(); };
-      wrap.appendChild(img);
+      removeBtn.onclick = () => { selectedFiles.splice(index, 1); renderFilePreviews(); };
       wrap.appendChild(removeBtn);
       bar.appendChild(wrap);
     });
+
     const addMore = document.createElement('button');
     addMore.style.cssText = 'background:#1a1a1a; border:1px dashed #f0c040; color:#f0c040; border-radius:8px; width:50px; height:50px; cursor:pointer; font-size:20px;';
     addMore.innerText = '+';
-    addMore.title = 'Add more images';
-    addMore.onclick = () => document.getElementById('image-input').click();
+    addMore.title = 'Add more files';
+    addMore.onclick = () => document.getElementById('file-input').click();
     bar.appendChild(addMore);
   }
 
@@ -481,7 +442,6 @@
     div.classList.add('message', sender === 'You' ? 'user-msg' : 'bee-msg');
     div.innerText = (sender === 'You' ? 'You: ' : 'Bee: ') + text;
 
-    // Edit on click for user messages
     if (sender === 'You') {
       div.addEventListener('click', function() {
         input.value = text;
@@ -517,8 +477,8 @@
 
   async function newChat() {
     currentChatId = null;
-    selectedImages = [];
-    renderImagePreviews();
+    selectedFiles = [];
+    renderFilePreviews();
     document.getElementById('chat-box').innerHTML = '';
     addMessage('Bee', 'Hi! I am Bee, your personal AI assistant! How can I help you today?');
     closeSidebar();
@@ -575,30 +535,27 @@
   async function sendMessage() {
     const text = input.value.trim();
 
-    if (selectedImages.length > 0) {
-      const question = text || 'What do you see in these images?';
+    if (selectedFiles.length > 0) {
+      const question = text || 'What do you see in this file?';
       input.value = '';
-      const imgSrcs = selectedImages.map(f => URL.createObjectURL(f));
+      const file = selectedFiles[0];
+      const isImage = file.type.startsWith('image/');
+      const imgSrcs = isImage ? [URL.createObjectURL(file)] : [];
       addMessage('You', question, imgSrcs);
       showTyping();
 
       const formData = new FormData();
-      formData.append('image', selectedImages[0]);
+      formData.append('image', file);
       formData.append('question', question);
 
-      const remainingImages = selectedImages.slice(1);
-      selectedImages = remainingImages;
-      renderImagePreviews();
+      selectedFiles = selectedFiles.slice(1);
+      renderFilePreviews();
 
       const res = await fetch('/image', { method: 'POST', body: formData });
       const data = await res.json();
       hideTyping();
-      lastReply = data.reply;
-      addMessage('Bee', data.reply);
-
-      if (remainingImages.length > 0) {
-        input.placeholder = `${remainingImages.length} more image(s) ready. Ask about them!`;
-      }
+      lastReply = data.reply || '';
+      addMessage('Bee', data.reply || 'Could not process this file.');
       return;
     }
 
@@ -620,9 +577,9 @@
     });
     const data = await res.json();
     hideTyping();
-    lastReply = data.reply;
+    lastReply = data.reply || '';
     if (data.chat_id) currentChatId = data.chat_id;
-    addMessage('Bee', data.reply);
+    addMessage('Bee', data.reply || 'Something went wrong.');
     loadChats();
   }
 
