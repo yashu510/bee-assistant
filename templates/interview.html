@@ -8,7 +8,6 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: white; min-height: 100vh; }
 
-    /* Header */
     header {
       background: #111;
       padding: 14px 24px;
@@ -30,7 +29,6 @@
     }
     #home-btn:hover { background: #f0c040; color: #0a0a0a; }
 
-    /* Setup Screen */
     #setup-screen {
       max-width: 600px;
       margin: 40px auto;
@@ -84,7 +82,6 @@
     }
     #start-btn:hover { background: #e0b030; }
 
-    /* Interview Screen */
     #interview-screen { display: none; }
 
     .interview-layout {
@@ -94,7 +91,6 @@
       height: calc(100vh - 60px);
     }
 
-    /* Left - Camera */
     #camera-side {
       background: #0a0a0a;
       display: flex;
@@ -148,6 +144,8 @@
       display: flex;
       gap: 16px;
       align-items: center;
+      width: 100%;
+      max-width: 380px;
     }
     .progress-bar-wrap {
       flex: 1;
@@ -165,7 +163,6 @@
     }
     .q-count { color: #888; font-size: 13px; white-space: nowrap; }
 
-    /* Right - Chat */
     #chat-side {
       display: flex;
       flex-direction: column;
@@ -246,7 +243,6 @@
     .score-bar { height: 100%; border-radius: 4px; background: #f0c040; }
     .score-num { color: #f0c040; font-weight: bold; font-size: 14px; min-width: 30px; text-align: right; }
 
-    /* Answer area */
     #answer-area {
       background: #111;
       border-top: 1px solid #222;
@@ -289,7 +285,6 @@
     #end-btn { background: #c62828; color: white; }
     #end-btn:hover { background: #b71c1c; }
 
-    /* Score screen */
     #score-screen {
       display: none;
       max-width: 600px;
@@ -317,7 +312,7 @@
     ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 
     @media (max-width: 768px) {
-      .interview-layout { grid-template-columns: 1fr; }
+      .interview-layout { grid-template-columns: 1fr; height: auto; }
       #camera-side { border-right: none; border-bottom: 1px solid #222; padding: 16px; }
       .features-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -403,18 +398,14 @@
 <!-- INTERVIEW SCREEN -->
 <div id="interview-screen">
   <div class="interview-layout">
-
-    <!-- LEFT: Camera -->
     <div id="camera-side">
       <div id="cam-placeholder" class="camera-placeholder">
         <span>📷</span>
         <p>Camera not available</p>
       </div>
       <video id="interview-video" autoplay muted playsinline style="display:none;"></video>
-
       <div id="timer-display">00:00</div>
-
-      <div class="progress-info" style="width:100%; max-width:380px;">
+      <div class="progress-info">
         <span class="q-count" id="q-count">Q 0/0</span>
         <div class="progress-bar-wrap">
           <div id="progress-bar"></div>
@@ -422,7 +413,6 @@
       </div>
     </div>
 
-    <!-- RIGHT: Chat -->
     <div id="chat-side">
       <div id="interview-chat"></div>
       <div id="answer-area">
@@ -436,7 +426,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -461,7 +450,6 @@
   let cameraStream = null;
   let lastQuestion = '';
 
-  // Start camera
   async function startCamera() {
     try {
       cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -481,7 +469,6 @@
     }
   }
 
-  // Timer
   function startTimer() {
     timerInterval = setInterval(() => {
       totalSeconds++;
@@ -493,9 +480,7 @@
     }, 1000);
   }
 
-  function stopTimer() {
-    clearInterval(timerInterval);
-  }
+  function stopTimer() { clearInterval(timerInterval); }
 
   function getTime() {
     const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -503,7 +488,6 @@
     return `${m}:${s}`;
   }
 
-  // Add message to chat
   function addBeeBubble(text) {
     const chat = document.getElementById('interview-chat');
     const div = document.createElement('div');
@@ -563,7 +547,6 @@
 
     startCamera();
     startTimer();
-
     showTyping();
 
     const res = await fetch('/interview/start', {
@@ -579,19 +562,22 @@
     const data = await res.json();
     hideTyping();
 
+    if (data.error) {
+      addBeeBubble('Sorry, something went wrong. Please try again.');
+      return;
+    }
+
     history = data.history;
     lastQuestion = data.question;
     questionNumber = 1;
     updateProgress();
-
     addBeeBubble(data.question);
     transcript.push({ type: 'bee', text: data.question });
-
-    // Speak the question
     speakText(data.question);
   }
 
   function speakText(text) {
+    if (!text) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.95;
@@ -623,21 +609,29 @@
     const data = await res.json();
     hideTyping();
 
+    if (data.error) {
+      addFeedbackBubble('Something went wrong: ' + data.error);
+      return;
+    }
+
     if (data.interview_done) {
-      addFeedbackBubble(data.feedback);
-      transcript.push({ type: 'feedback', text: data.feedback });
+      const finalText = data.feedback || "Great interview! Well done!";
+      addFeedbackBubble(finalText);
+      transcript.push({ type: 'feedback', text: finalText });
       stopTimer();
       stopCamera();
-      setTimeout(() => showScoreScreen(data.feedback), 1000);
+      setTimeout(() => showScoreScreen(finalText), 1000);
     } else {
-      addFeedbackBubble(data.feedback);
-      transcript.push({ type: 'feedback', text: data.feedback });
+      const feedbackText = data.feedback || "Good answer!";
+      addFeedbackBubble(feedbackText);
+      transcript.push({ type: 'feedback', text: feedbackText });
       questionNumber++;
       updateProgress();
-      lastQuestion = data.next_question;
-      addBeeBubble(data.next_question);
-      transcript.push({ type: 'bee', text: data.next_question });
-      speakText(data.next_question);
+      const nextQ = data.next_question || "Tell me more about your experience.";
+      lastQuestion = nextQ;
+      addBeeBubble(nextQ);
+      transcript.push({ type: 'bee', text: nextQ });
+      speakText(nextQ);
     }
   }
 
@@ -647,7 +641,6 @@
     speakText(lastQuestion);
   }
 
-  // Capture from camera and describe
   async function captureAndSend() {
     const video = document.getElementById('interview-video');
     if (!cameraStream || video.style.display === 'none') {
@@ -664,7 +657,7 @@
       formData.append('question', 'Describe what you see in this interview snapshot.');
       const res = await fetch('/image', { method: 'POST', body: formData });
       const data = await res.json();
-      addFeedbackBubble('📸 ' + data.reply);
+      addFeedbackBubble('📸 ' + (data.reply || 'Could not analyze image.'));
     }, 'image/jpeg');
   }
 
@@ -697,23 +690,21 @@
     if (!confirm('End interview? You will see your score report.')) return;
     stopTimer();
     stopCamera();
-    showScoreScreen('Interview ended early. Here is your progress so far.');
+    showScoreScreen('Interview ended. Here is your progress so far!');
   }
 
   function showScoreScreen(feedback) {
     document.getElementById('interview-screen').style.display = 'none';
     document.getElementById('score-screen').style.display = 'block';
 
-    // Parse scores from feedback
     const scores = {
-      'Communication': extractScore(feedback, 'Communication') || Math.floor(Math.random() * 3) + 7,
-      'Knowledge': extractScore(feedback, 'Knowledge') || Math.floor(Math.random() * 3) + 6,
-      'Confidence': extractScore(feedback, 'Confidence') || Math.floor(Math.random() * 3) + 7,
-      'Overall': extractScore(feedback, 'Overall') || Math.floor(Math.random() * 3) + 7,
+      'Communication': extractScore(feedback, 'Communication') || Math.floor(Math.random() * 2) + 7,
+      'Knowledge': extractScore(feedback, 'Knowledge') || Math.floor(Math.random() * 2) + 7,
+      'Confidence': extractScore(feedback, 'Confidence') || Math.floor(Math.random() * 2) + 7,
+      'Overall': extractScore(feedback, 'Overall') || Math.floor(Math.random() * 2) + 7,
     };
 
-    let html = `<div class="score-card">
-      <h3>📊 Your Performance</h3>`;
+    let html = `<div class="score-card"><h3>📊 Your Performance</h3>`;
     for (const [label, score] of Object.entries(scores)) {
       html += `<div class="score-row">
         <span class="score-label">${label}</span>
