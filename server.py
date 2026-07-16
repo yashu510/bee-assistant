@@ -52,6 +52,12 @@ def index():
         return render_template('login.html')
     return render_template('index.html', user_name=session.get('user_name'))
 
+@app.route('/chat')
+def chat():
+    if 'user_id' not in session:
+        return render_template('login.html')
+    return render_template('chat.html', user_name=session.get('user_name'))
+
 @app.route('/register', methods=['POST'])
 def register():
     try:

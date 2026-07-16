@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bee - Your AI Assistant</title>
+  <title>Bee - Chat</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     body {
       font-family: 'Segoe UI', sans-serif;
       display: flex;
@@ -14,7 +13,6 @@
       background: #0a0a0a;
       overflow: hidden;
     }
-
     #sidebar {
       width: 260px;
       background: #111111;
@@ -38,10 +36,25 @@
       font-size: 14px;
     }
     #new-chat-btn:hover { background: #e0b030; }
-    #interview-btn {
+    #home-btn {
       background: #1a1a1a;
       color: #f0c040;
       border: 1px solid #f0c040;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 10px;
+      font-size: 14px;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+    }
+    #home-btn:hover { background: #f0c040; color: #0a0a0a; }
+    #interview-btn {
+      background: #1a1a1a;
+      color: #f0c040;
+      border: 1px solid #333;
       padding: 10px;
       border-radius: 10px;
       font-weight: bold;
@@ -98,9 +111,7 @@
       margin-top: 8px;
     }
     #logout-btn:hover { color: #f0c040; border-color: #f0c040; }
-
     #main { flex: 1; display: flex; flex-direction: column; background: #0a0a0a; overflow: hidden; }
-
     header {
       background: #111111;
       padding: 14px 24px;
@@ -119,7 +130,6 @@
       font-size: 24px;
       cursor: pointer;
     }
-
     #chat-box {
       flex: 1;
       overflow-y: auto;
@@ -173,8 +183,6 @@
       border: 1px solid #2a2a2a;
     }
     .chat-image { max-width: 200px; border-radius: 12px; margin-top: 8px; display: block; }
-
-    /* Files preview bar */
     #images-preview-bar {
       display: none;
       flex-wrap: wrap;
@@ -184,42 +192,21 @@
       border-top: 1px solid #222;
     }
     .img-thumb-wrap { position: relative; display: inline-block; }
-    .img-thumb {
-      width: 50px;
-      height: 50px;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid #333;
-    }
+    .img-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #333; }
     .file-thumb {
-      width: 50px;
-      height: 50px;
-      background: #333;
-      border-radius: 8px;
+      width: 50px; height: 50px;
+      background: #333; border-radius: 8px;
       border: 1px solid #444;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       font-size: 20px;
     }
     .img-remove {
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      background: #c62828;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 18px;
-      height: 18px;
-      font-size: 11px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: absolute; top: -6px; right: -6px;
+      background: #c62828; color: white; border: none;
+      border-radius: 50%; width: 18px; height: 18px;
+      font-size: 11px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
     }
-
-    /* Input area */
     #input-area {
       background: #111111;
       padding: 12px 16px;
@@ -236,77 +223,52 @@
     }
     #input-row:focus-within { border-color: #f0c040; }
     .input-icon-btn {
-      background: none;
-      border: none;
-      color: #888;
-      font-size: 18px;
-      cursor: pointer;
-      padding: 4px 6px;
-      border-radius: 8px;
-      flex-shrink: 0;
+      background: none; border: none;
+      color: #888; font-size: 18px;
+      cursor: pointer; padding: 4px 6px;
+      border-radius: 8px; flex-shrink: 0;
     }
     .input-icon-btn:hover { color: #f0c040; background: #222; }
     .input-icon-btn.active { color: #c62828; }
     #message-input {
-      flex: 1;
-      background: none;
-      border: none;
-      outline: none;
-      font-size: 15px;
-      color: #ffffff;
-      caret-color: #f0c040;
+      flex: 1; background: none; border: none;
+      outline: none; font-size: 15px;
+      color: #ffffff; caret-color: #f0c040;
       padding: 6px 4px;
     }
     #message-input::placeholder { color: #555; }
     #send-btn {
-      background: #f0c040;
-      color: #0a0a0a;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      flex-shrink: 0;
+      background: #f0c040; color: #0a0a0a;
+      border: none; padding: 8px 18px;
+      border-radius: 20px; font-size: 14px;
+      font-weight: bold; cursor: pointer; flex-shrink: 0;
     }
     #send-btn:hover { background: #e0b030; }
-
-    /* Footer */
     #footer {
-      background: #111111;
-      text-align: center;
-      padding: 6px;
-      font-size: 11px;
-      color: #444;
-      border-top: 1px solid #1a1a1a;
+      background: #111111; text-align: center;
+      padding: 6px; font-size: 11px;
+      color: #444; border-top: 1px solid #1a1a1a;
     }
     #footer a { color: #666; text-decoration: none; }
     #footer a:hover { color: #f0c040; }
-
     #file-input { display: none; }
-
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #111; }
     ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #f0c040; }
-
     @media (max-width: 768px) {
       #sidebar {
-        position: fixed;
-        top: 0; left: 0;
-        height: 100vh;
-        z-index: 100;
+        position: fixed; top: 0; left: 0;
+        height: 100vh; z-index: 100;
         transform: translateX(-100%);
       }
       #sidebar.open { transform: translateX(0); }
       #menu-btn { display: block; }
       #overlay {
-        display: none;
-        position: fixed;
+        display: none; position: fixed;
         top: 0; left: 0;
         width: 100%; height: 100%;
-        background: rgba(0,0,0,0.5);
-        z-index: 99;
+        background: rgba(0,0,0,0.5); z-index: 99;
       }
       #overlay.show { display: block; }
       .message { max-width: 90%; }
@@ -321,7 +283,8 @@
 <div id="sidebar">
   <h2>🐝 Bee</h2>
   <button id="new-chat-btn" onclick="newChat()">+ New Chat</button>
-  <a id="interview-btn" href="/interview">🎯 Interview Practice</a>
+  <a id="home-btn" href="/">🏠 Home</a>
+  <a id="interview-btn" href="/interview">🎯 Interview</a>
   <div id="chat-list"></div>
   <button id="logout-btn" onclick="logout()">Logout</button>
 </div>
@@ -330,17 +293,14 @@
   <header>
     <div style="display:flex; align-items:center; gap:12px;">
       <button id="menu-btn" onclick="toggleSidebar()">☰</button>
-      <h1>🐝 Bee</h1>
+      <h1>💬 Chat with Bee</h1>
     </div>
-    <span>Welcome, {{ user_name }}!</span>
+    <span>{{ user_name }}</span>
   </header>
 
   <div id="chat-box"></div>
-
-  <!-- Files preview -->
   <div id="images-preview-bar"></div>
 
-  <!-- Input area -->
   <div id="input-area">
     <div id="input-row">
       <button class="input-icon-btn" title="Add File" onclick="document.getElementById('file-input').click()">📎</button>
@@ -352,11 +312,10 @@
   </div>
 
   <div id="footer">
-    © 2026 Bee AI · Built by <a href="https://www.linkedin.com/in/gadde-guna-yaswanth/" target="_blank">Guna Yaswanth Gadde</a> · All rights reserved
+    © 2026 Bee AI · Built by <a href="https://www.linkedin.com/in/gadde-guna-yaswanth/" target="_blank">Guna Yaswanth Gadde</a>
   </div>
 </div>
 
-<!-- Accept ALL file types -->
 <input type="file" id="file-input" accept="*/*" multiple onchange="addFiles(event)"/>
 
 <script>
@@ -376,7 +335,6 @@
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('overlay').classList.toggle('show');
   }
-
   function closeSidebar() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('overlay').classList.remove('show');
@@ -403,7 +361,6 @@
     selectedFiles.forEach((file, index) => {
       const wrap = document.createElement('div');
       wrap.classList.add('img-thumb-wrap');
-
       const isImage = file.type.startsWith('image/');
       if (isImage) {
         const img = document.createElement('img');
@@ -417,7 +374,6 @@
         fileDiv.title = file.name;
         wrap.appendChild(fileDiv);
       }
-
       const removeBtn = document.createElement('button');
       removeBtn.classList.add('img-remove');
       removeBtn.innerText = '✕';
@@ -425,11 +381,9 @@
       wrap.appendChild(removeBtn);
       bar.appendChild(wrap);
     });
-
     const addMore = document.createElement('button');
     addMore.style.cssText = 'background:#1a1a1a; border:1px dashed #f0c040; color:#f0c040; border-radius:8px; width:50px; height:50px; cursor:pointer; font-size:20px;';
     addMore.innerText = '+';
-    addMore.title = 'Add more files';
     addMore.onclick = () => document.getElementById('file-input').click();
     bar.appendChild(addMore);
   }
@@ -441,7 +395,6 @@
     const div = document.createElement('div');
     div.classList.add('message', sender === 'You' ? 'user-msg' : 'bee-msg');
     div.innerText = (sender === 'You' ? 'You: ' : 'Bee: ') + text;
-
     if (sender === 'You') {
       div.addEventListener('click', function() {
         input.value = text;
@@ -449,7 +402,6 @@
         div.remove();
       });
     }
-
     imgSrcs.forEach(src => {
       const img = document.createElement('img');
       img.src = src;
@@ -534,7 +486,6 @@
 
   async function sendMessage() {
     const text = input.value.trim();
-
     if (selectedFiles.length > 0) {
       const question = text || 'What do you see in this file?';
       input.value = '';
@@ -543,14 +494,11 @@
       const imgSrcs = isImage ? [URL.createObjectURL(file)] : [];
       addMessage('You', question, imgSrcs);
       showTyping();
-
       const formData = new FormData();
       formData.append('image', file);
       formData.append('question', question);
-
       selectedFiles = selectedFiles.slice(1);
       renderFilePreviews();
-
       const res = await fetch('/image', { method: 'POST', body: formData });
       const data = await res.json();
       hideTyping();
@@ -558,18 +506,15 @@
       addMessage('Bee', data.reply || 'Could not process this file.');
       return;
     }
-
     if (!text) return;
     input.value = '';
     addMessage('You', text);
     showTyping();
-
     if (!currentChatId) {
       const chatRes = await fetch('/new_chat', { method: 'POST' });
       const chatData = await chatRes.json();
       currentChatId = chatData.chat_id;
     }
-
     const res = await fetch('/ghost', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -631,212 +576,6 @@
 
   addMessage('Bee', 'Hi! I am Bee, your personal AI assistant! How can I help you today?');
   loadChats();
-</script>
-</body>
-</html>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bee - Home</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0a0a0a;
-      color: white;
-      min-height: 100vh;
-    }
-    header {
-      background: #111;
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #222;
-    }
-    header h1 { color: #f0c040; font-size: 22px; font-weight: 700; }
-    .header-right { display: flex; align-items: center; gap: 12px; }
-    .header-right span { color: #888; font-size: 14px; }
-    #logout-btn {
-      background: transparent;
-      color: #555;
-      border: 1px solid #333;
-      padding: 6px 14px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    #logout-btn:hover { color: #f0c040; border-color: #f0c040; }
-    .hero {
-      text-align: center;
-      padding: 48px 24px 32px;
-    }
-    .hero h2 { font-size: 32px; color: #f0c040; margin-bottom: 12px; }
-    .hero p { color: #888; font-size: 16px; max-width: 500px; margin: 0 auto; }
-    .modes-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 0 24px 40px;
-    }
-    .mode-card {
-      background: #111;
-      border: 2px solid #222;
-      border-radius: 20px;
-      padding: 28px;
-      cursor: pointer;
-      transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
-      text-decoration: none;
-      display: block;
-    }
-    .mode-card:hover {
-      border-color: #f0c040;
-      transform: translateY(-4px);
-      box-shadow: 0 8px 30px rgba(240,192,64,0.15);
-    }
-    .mode-card.coming-soon { opacity: 0.6; cursor: not-allowed; }
-    .mode-card.coming-soon:hover { transform: none; border-color: #333; box-shadow: none; }
-    .card-badge {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      font-size: 11px;
-      font-weight: bold;
-      padding: 3px 10px;
-      border-radius: 20px;
-    }
-    .badge-live { background: #1a3a1a; color: #66bb6a; border: 1px solid #2a5a2a; }
-    .badge-soon { background: #1a1a1a; color: #555; border: 1px solid #333; }
-    .card-icon { font-size: 48px; margin-bottom: 16px; }
-    .card-title { color: #f0c040; font-size: 20px; font-weight: bold; margin-bottom: 8px; }
-    .card-desc { color: #888; font-size: 13px; line-height: 1.6; margin-bottom: 16px; }
-    .card-features { list-style: none; padding: 0; }
-    .card-features li {
-      color: #666;
-      font-size: 12px;
-      padding: 4px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .card-features li::before { content: '→'; color: #f0c040; }
-    .card-action {
-      margin-top: 20px;
-      display: inline-block;
-      background: #f0c040;
-      color: #0a0a0a;
-      padding: 10px 24px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: bold;
-    }
-    .mode-card.coming-soon .card-action { background: #1a1a1a; color: #555; }
-    .footer {
-      text-align: center;
-      padding: 20px;
-      color: #333;
-      font-size: 11px;
-      border-top: 1px solid #1a1a1a;
-    }
-    .footer a { color: #555; text-decoration: none; }
-    .footer a:hover { color: #f0c040; }
-    @media (max-width: 600px) {
-      .modes-grid { grid-template-columns: 1fr; }
-      .hero h2 { font-size: 24px; }
-    }
-  </style>
-</head>
-<body>
-
-<header>
-  <h1>🐝 Bee</h1>
-  <div class="header-right">
-    <span>Hi, {{ user_name }}! 👋</span>
-    <button id="logout-btn" onclick="logout()">Logout</button>
-  </div>
-</header>
-
-<div class="hero">
-  <h2>What would you like to do today?</h2>
-  <p>Choose a mode to get started with your personal AI assistant</p>
-</div>
-
-<div class="modes-grid">
-
-  <a href="/chat" class="mode-card">
-    <span class="card-badge badge-live">✅ LIVE</span>
-    <div class="card-icon">💬</div>
-    <div class="card-title">General Chat</div>
-    <div class="card-desc">Talk to Bee about anything. She remembers you and gets smarter every conversation.</div>
-    <ul class="card-features">
-      <li>Remembers your preferences</li>
-      <li>Voice input & speak reply</li>
-      <li>Upload images & files</li>
-      <li>Full chat history</li>
-    </ul>
-    <span class="card-action">Start Chatting →</span>
-  </a>
-
-  <a href="/interview" class="mode-card">
-    <span class="card-badge badge-live">✅ LIVE</span>
-    <div class="card-icon">🎯</div>
-    <div class="card-title">Interview Prep</div>
-    <div class="card-desc">Practice real interviews with your camera on. Get instant feedback and detailed scores.</div>
-    <ul class="card-features">
-      <li>Camera on during interview</li>
-      <li>Speak your answers</li>
-      <li>Real-time AI feedback</li>
-      <li>Score report at end</li>
-    </ul>
-    <span class="card-action">Start Practice →</span>
-  </a>
-
-  <div class="mode-card coming-soon">
-    <span class="card-badge badge-soon">🔜 COMING SOON</span>
-    <div class="card-icon">📧</div>
-    <div class="card-title">Email & Tasks</div>
-    <div class="card-desc">Bee reads your Gmail, drafts replies in YOUR writing style, and manages your tasks.</div>
-    <ul class="card-features">
-      <li>Read & draft Gmail emails</li>
-      <li>Writes in your own style</li>
-      <li>Search Google for you</li>
-      <li>Smart task management</li>
-    </ul>
-    <span class="card-action">Coming Soon</span>
-  </div>
-
-  <div class="mode-card coming-soon">
-    <span class="card-badge badge-soon">🔜 COMING SOON</span>
-    <div class="card-icon">🚀</div>
-    <div class="card-title">Job Apply Assistant</div>
-    <div class="card-desc">Upload your resume once. Bee auto-fills applications and writes cover letters in your voice.</div>
-    <ul class="card-features">
-      <li>Upload resume once</li>
-      <li>Auto-fill applications</li>
-      <li>Cover letters in your voice</li>
-      <li>Track all jobs applied</li>
-    </ul>
-    <span class="card-action">Coming Soon</span>
-  </div>
-
-</div>
-
-<div class="footer">
-  © 2026 Bee AI · Built by <a href="https://www.linkedin.com/in/gadde-guna-yaswanth/" target="_blank">Guna Yaswanth Gadde</a> · All rights reserved
-</div>
-
-<script>
-  async function logout() {
-    await fetch('/logout', { method: 'POST' });
-    window.location.href = '/';
-  }
 </script>
 </body>
 </html>
