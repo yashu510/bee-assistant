@@ -74,6 +74,17 @@ def get_gmail_flow():
         redirect_uri=GOOGLE_REDIRECT_URI
     )
 
+def save_gmail_token(user_id, token_data):
+    supabase.table('users').update({
+        "gmail_token": token_data
+    }).eq('id', user_id).execute()
+
+def get_gmail_token(user_id):
+    result = supabase.table('users').select('gmail_token').eq('id', user_id).execute()
+    if result.data and result.data[0].get('gmail_token'):
+        return result.data[0]['gmail_token']
+    return None
+
 @app.route('/')
 def index():
     if 'user_id' not in session:
@@ -94,8 +105,14 @@ def email_page():
 
 @app.route('/gmail/connect')
 def gmail_connect():
+    if 'user_id' not in session:
+        return redirect('/')
     flow = get_gmail_flow()
-    auth_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true', prompt='consent')
+    auth_url, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true',
+        prompt='consent'
+    )
     session['oauth_state'] = state
     session.modified = True
     return redirect(auth_url)
@@ -106,7 +123,7 @@ def gmail_callback():
         flow = get_gmail_flow()
         flow.fetch_token(authorization_response=request.url)
         credentials = flow.credentials
-        session['gmail_token'] = {
+        token_data = {
             'token': credentials.token,
             'refresh_token': credentials.refresh_token,
             'token_uri': credentials.token_uri,
@@ -114,6 +131,11 @@ def gmail_callback():
             'client_secret': credentials.client_secret,
             'scopes': list(credentials.scopes) if credentials.scopes else SCOPES
         }
+        # Save to Supabase
+        if 'user_id' in session:
+            save_gmail_token(session['user_id'], token_data)
+        # Also save to session as backup
+        session['gmail_token'] = token_data
         session.modified = True
         return redirect('/email')
     except Exception as e:
@@ -121,15 +143,28 @@ def gmail_callback():
 
 @app.route('/gmail/status')
 def gmail_status():
+    if 'user_id' not in session:
+        return jsonify({"connected": False})
+    # Check Supabase first
+    token = get_gmail_token(session['user_id'])
+    if token:
+        return jsonify({"connected": True})
+    # Fall back to session
     connected = 'gmail_token' in session
     return jsonify({"connected": connected})
 
 @app.route('/gmail/emails')
 def gmail_emails():
-    if 'gmail_token' not in session:
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in."})
+    # Get token from Supabase first
+    token_data = get_gmail_token(session['user_id'])
+    if not token_data:
+        # Fall back to session
+        token_data = session.get('gmail_token')
+    if not token_data:
         return jsonify({"error": "Gmail not connected. Please click Connect Gmail!"})
     try:
-        token_data = session['gmail_token']
         creds = Credentials(
             token=token_data['token'],
             refresh_token=token_data.get('refresh_token'),
@@ -148,7 +183,9 @@ def gmail_emails():
             query = 'in:sent'
         else:
             query = 'in:inbox'
-        results = service.users().messages().list(userId='me', q=query, maxResults=20).execute()
+        results = service.users().messages().list(
+            userId='me', q=query, maxResults=20
+        ).execute()
         messages = results.get('messages', [])
         emails = []
         for msg in messages:
