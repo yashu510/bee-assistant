@@ -5,8 +5,11 @@ import bcrypt
 import datetime
 from dotenv import load_dotenv
 import anthropic
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect
 from supabase import create_client
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
 
 load_dotenv()
 
@@ -18,6 +21,11 @@ client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "https://web-production-c1ffe.up.railway.app/gmail/callback")
+SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
 
 BEE_SYSTEM_PROMPT = """You are Bee, a personal AI assistant. You are sweet, friendly, smart and always helpful. Remember everything the user tells you. Always introduce yourself as Bee when asked. Respond in plain text only, no markdown, no bullet points, no headers, no bold, no asterisks. If anyone asks who created you, who built you, or who is the founder of Bee, tell them: Bee was created by Guna Yaswanth Gadde, the Founder of Bee. You can find him on LinkedIn at https://www.linkedin.com/in/gadde-guna-yaswanth/ Never mention Claude, Anthropic, or any other AI company. You are simply Bee, a unique AI assistant built by Guna Yaswanth Gadde."""
 
@@ -46,6 +54,21 @@ def clean_markdown(text):
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
+def get_gmail_flow():
+    return Flow.from_client_config(
+        {
+            "web": {
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [GOOGLE_REDIRECT_URI]
+            }
+        },
+        scopes=SCOPES,
+        redirect_uri=GOOGLE_REDIRECT_URI
+    )
+
 @app.route('/')
 def index():
     if 'user_id' not in session:
@@ -57,6 +80,119 @@ def chat():
     if 'user_id' not in session:
         return render_template('login.html')
     return render_template('chat.html', user_name=session.get('user_name'))
+
+@app.route('/email')
+def email_page():
+    if 'user_id' not in session:
+        return render_template('login.html')
+    return render_template('email.html', user_name=session.get('user_name'))
+
+@app.route('/gmail/connect')
+def gmail_connect():
+    flow = get_gmail_flow()
+    auth_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
+    session['oauth_state'] = state
+    return redirect(auth_url)
+
+@app.route('/gmail/callback')
+def gmail_callback():
+    try:
+        flow = get_gmail_flow()
+        flow.fetch_token(authorization_response=request.url)
+        credentials = flow.credentials
+        session['gmail_token'] = {
+            'token': credentials.token,
+            'refresh_token': credentials.refresh_token,
+            'token_uri': credentials.token_uri,
+            'client_id': credentials.client_id,
+            'client_secret': credentials.client_secret,
+            'scopes': list(credentials.scopes) if credentials.scopes else SCOPES
+        }
+        return redirect('/email')
+    except Exception as e:
+        return redirect('/email?error=' + str(e))
+
+@app.route('/gmail/status')
+def gmail_status():
+    connected = 'gmail_token' in session
+    return jsonify({"connected": connected})
+
+@app.route('/gmail/emails')
+def gmail_emails():
+    if 'gmail_token' not in session:
+        return jsonify({"error": "Gmail not connected"})
+    try:
+        token_data = session['gmail_token']
+        creds = Credentials(
+            token=token_data['token'],
+            refresh_token=token_data.get('refresh_token'),
+            token_uri=token_data['token_uri'],
+            client_id=token_data['client_id'],
+            client_secret=token_data['client_secret'],
+            scopes=token_data['scopes']
+        )
+        service = build('gmail', 'v1', credentials=creds)
+        filter_type = request.args.get('filter', 'inbox')
+        if filter_type == 'inbox':
+            query = 'in:inbox'
+        elif filter_type == 'unread':
+            query = 'is:unread'
+        elif filter_type == 'sent':
+            query = 'in:sent'
+        else:
+            query = 'in:inbox'
+        results = service.users().messages().list(userId='me', q=query, maxResults=20).execute()
+        messages = results.get('messages', [])
+        emails = []
+        for msg in messages:
+            msg_data = service.users().messages().get(
+                userId='me', id=msg['id'], format='metadata',
+                metadataHeaders=['From', 'Subject', 'Date']
+            ).execute()
+            headers = {h['name']: h['value'] for h in msg_data['payload']['headers']}
+            emails.append({
+                'id': msg['id'],
+                'from': headers.get('From', 'Unknown'),
+                'subject': headers.get('Subject', 'No Subject'),
+                'date': headers.get('Date', ''),
+                'snippet': msg_data.get('snippet', ''),
+                'unread': 'UNREAD' in msg_data.get('labelIds', [])
+            })
+        return jsonify({"emails": emails})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+@app.route('/email/ask', methods=['POST'])
+def email_ask():
+    if 'user_id' not in session:
+        return jsonify({"error": "Not logged in."})
+    try:
+        data = request.json
+        user_message = data.get('message', '')
+        email_context = data.get('email_context', '')
+        history = data.get('history', [])
+
+        system = f"""You are Bee, a personal email assistant. You help users manage their Gmail inbox, draft emails, summarize emails, and stay organized.
+
+{f'Here is the users email context: {email_context}' if email_context else 'No emails loaded yet. Ask the user to connect Gmail.'}
+
+Be helpful, specific, and concise. When drafting emails, write them in a professional but friendly tone.
+Never mention Claude or Anthropic. You are simply Bee, built by Guna Yaswanth Gadde."""
+
+        messages = history[-10:] if len(history) > 10 else history
+        if not messages:
+            messages = [{"role": "user", "content": user_message}]
+
+        message = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=1024,
+            system=system,
+            messages=messages
+        )
+        reply = clean_markdown(message.content[0].text)
+        return jsonify({"reply": reply})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -301,6 +437,7 @@ def interview_answer():
         max_questions = data.get('max_questions', 5)
         is_last = data.get('is_last', False)
         job_type = data.get('job_type', 'General')
+        last_question = data.get('last_question', '')
 
         if is_last:
             prompt = f"""This was the last question for the {job_type} interview. The candidate answered: '{answer}'.
@@ -320,6 +457,7 @@ Overall Performance: X/10
 Plain text only."""
         else:
             prompt = f"""The candidate answered: '{answer}' for question {question_number} of {max_questions} in a {job_type} interview.
+The question was: '{last_question}'
 
 Give specific feedback about THIS exact answer in 2-3 sentences. Mention what they said specifically, what was good and what could be better. Then ask the next question.
 

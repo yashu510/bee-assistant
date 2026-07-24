@@ -14,7 +14,6 @@
       display: flex;
       flex-direction: column;
     }
-
     header {
       background: #111;
       padding: 16px 32px;
@@ -36,14 +35,12 @@
       font-size: 13px;
     }
     #logout-btn:hover { color: #f0c040; border-color: #f0c040; }
-
     .hero {
       text-align: center;
       padding: 48px 24px 32px;
     }
     .hero h2 { font-size: 32px; color: #f0c040; margin-bottom: 12px; }
     .hero p { color: #888; font-size: 16px; max-width: 500px; margin: 0 auto; }
-
     .modes-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -53,7 +50,6 @@
       padding: 0 24px 40px;
       flex: 1;
     }
-
     .mode-card {
       background: #111;
       border: 2px solid #222;
@@ -70,8 +66,11 @@
       transform: translateY(-4px);
       box-shadow: 0 8px 30px rgba(240,192,64,0.15);
     }
-    .mode-card.coming-soon { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
-
+    .mode-card.coming-soon {
+      opacity: 0.6;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
     .card-badge {
       position: absolute;
       top: 14px;
@@ -83,11 +82,9 @@
     }
     .badge-live { background: #1a3a1a; color: #66bb6a; border: 1px solid #2a5a2a; }
     .badge-soon { background: #1a1a1a; color: #555; border: 1px solid #333; }
-
     .card-icon { font-size: 44px; margin-bottom: 14px; }
     .card-title { color: #f0c040; font-size: 20px; font-weight: bold; margin-bottom: 8px; }
     .card-desc { color: #888; font-size: 13px; line-height: 1.6; margin-bottom: 16px; }
-
     .card-features { list-style: none; padding: 0; margin-bottom: 20px; }
     .card-features li {
       color: #666;
@@ -98,7 +95,6 @@
       gap: 8px;
     }
     .card-features li::before { content: '→'; color: #f0c040; }
-
     .card-action {
       display: inline-block;
       background: #f0c040;
@@ -112,7 +108,6 @@
       background: #1a1a1a;
       color: #555;
     }
-
     footer {
       text-align: center;
       padding: 16px;
@@ -123,7 +118,6 @@
     }
     footer a { color: #555; text-decoration: none; }
     footer a:hover { color: #f0c040; }
-
     @media (max-width: 600px) {
       .modes-grid { grid-template-columns: 1fr; }
       .hero h2 { font-size: 24px; }
@@ -175,8 +169,8 @@
     <span class="card-action">Start Practice →</span>
   </a>
 
-  <div class="mode-card coming-soon">
-    <span class="card-badge badge-soon">🔜 COMING SOON</span>
+  <a href="/email" class="mode-card">
+    <span class="card-badge badge-live">✅ LIVE</span>
     <div class="card-icon">📧</div>
     <div class="card-title">Email & Tasks</div>
     <div class="card-desc">Bee reads your Gmail, drafts replies in YOUR writing style, and manages your tasks.</div>
@@ -186,8 +180,8 @@
       <li>Search Google for you</li>
       <li>Smart task management</li>
     </ul>
-    <span class="card-action">Coming Soon</span>
-  </div>
+    <span class="card-action">Open Email →</span>
+  </a>
 
   <div class="mode-card coming-soon">
     <span class="card-badge badge-soon">🔜 COMING SOON</span>
