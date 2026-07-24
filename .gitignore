@@ -6,3 +6,4 @@ temp_*
 .venv/
 .env.save
 .env.save
+flask_session/
