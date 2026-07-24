@@ -6,6 +6,7 @@ import datetime
 from dotenv import load_dotenv
 import anthropic
 from flask import Flask, render_template, request, jsonify, session, redirect
+from flask_session import Session
 from supabase import create_client
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -15,6 +16,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "bee-secret-key-2026")
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400
+Session(app)
 
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -90,8 +95,9 @@ def email_page():
 @app.route('/gmail/connect')
 def gmail_connect():
     flow = get_gmail_flow()
-    auth_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
+    auth_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true', prompt='consent')
     session['oauth_state'] = state
+    session.modified = True
     return redirect(auth_url)
 
 @app.route('/gmail/callback')
@@ -108,6 +114,7 @@ def gmail_callback():
             'client_secret': credentials.client_secret,
             'scopes': list(credentials.scopes) if credentials.scopes else SCOPES
         }
+        session.modified = True
         return redirect('/email')
     except Exception as e:
         return redirect('/email?error=' + str(e))
@@ -120,7 +127,7 @@ def gmail_status():
 @app.route('/gmail/emails')
 def gmail_emails():
     if 'gmail_token' not in session:
-        return jsonify({"error": "Gmail not connected"})
+        return jsonify({"error": "Gmail not connected. Please click Connect Gmail!"})
     try:
         token_data = session['gmail_token']
         creds = Credentials(
@@ -171,18 +178,15 @@ def email_ask():
         user_message = data.get('message', '')
         email_context = data.get('email_context', '')
         history = data.get('history', [])
-
         system = f"""You are Bee, a personal email assistant. You help users manage their Gmail inbox, draft emails, summarize emails, and stay organized.
 
 {f'Here is the users email context: {email_context}' if email_context else 'No emails loaded yet. Ask the user to connect Gmail.'}
 
 Be helpful, specific, and concise. When drafting emails, write them in a professional but friendly tone.
 Never mention Claude or Anthropic. You are simply Bee, built by Guna Yaswanth Gadde."""
-
         messages = history[-10:] if len(history) > 10 else history
         if not messages:
             messages = [{"role": "user", "content": user_message}]
-
         message = client.messages.create(
             model="claude-opus-4-6",
             max_tokens=1024,
@@ -230,6 +234,7 @@ def login():
             return jsonify({"error": "Wrong password."})
         session['user_id'] = user['id']
         session['user_name'] = user['name']
+        session.modified = True
         return jsonify({"success": True, "name": user['name']})
     except Exception as e:
         return jsonify({"error": str(e)})
@@ -438,7 +443,6 @@ def interview_answer():
         is_last = data.get('is_last', False)
         job_type = data.get('job_type', 'General')
         last_question = data.get('last_question', '')
-
         if is_last:
             prompt = f"""This was the last question for the {job_type} interview. The candidate answered: '{answer}'.
 
@@ -466,7 +470,6 @@ FEEDBACK: [your specific feedback about their exact answer]
 NEXT QUESTION: [your next interview question]
 
 Plain text only."""
-
         history.append({"role": "user", "content": prompt})
         message = client.messages.create(
             model="claude-opus-4-6",
@@ -475,10 +478,8 @@ Plain text only."""
             messages=history
         )
         response = clean_markdown(message.content[0].text)
-
         if is_last:
             return jsonify({"feedback": response, "next_question": "", "interview_done": True})
-
         if "NEXT QUESTION:" in response:
             parts = response.split("NEXT QUESTION:")
             feedback = parts[0].replace("FEEDBACK:", "").strip()
@@ -486,7 +487,6 @@ Plain text only."""
         else:
             feedback = response
             next_question = "Can you tell me more about your experience?"
-
         return jsonify({"feedback": feedback, "next_question": next_question, "interview_done": False})
     except Exception as e:
         return jsonify({"error": str(e)})
